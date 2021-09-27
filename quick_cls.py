@@ -11,6 +11,7 @@ import sys
 import argparse
 from sklearn.model_selection import train_test_split
 from torch.utils.data import TensorDataset
+from pathlib import Path
 
 def get_labels_dict(labels_set={}): # 如果为空则读取，否则保存
     tag2idx = {}
@@ -210,6 +211,7 @@ if __name__ == '__main__':
     DATA_DIR = './data/cls/'
     SAVE_TEST_RESULT = 'test_result.csv'
     MODEL_SAVE = './models/cls/'
+    Path(MODEL_SAVE).mkdir(parents=True, exist_ok=True)
     MODEL_SAVE_NAME = 'pytorch_albert_qishun_cat.bin'
     DEVICE = torch.device("cuda:0") if torch.cuda.is_available() else 'cpu'
     MAX_LENGTH = 50
