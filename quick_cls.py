@@ -156,6 +156,7 @@ def train_save():
             print("val data: ")
             print(classification_report(val_label, val_pred, labels=list(tag2idx.values()), target_names=list(tag2idx.keys())))
 def test():
+    LT = torch.LongTensor
     model_file = os.path.join(MODEL_SAVE, MODEL_SAVE_NAME)
     model = torch.load(model_file).to('cpu')
     tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_FILE)
@@ -164,18 +165,25 @@ def test():
     model.eval()
     test_file = os.path.join(DATA_DIR, "test.csv")
     df_test = pd.read_csv(test_file, header=0)
+    preds,labels = [],[]
+    progress_bar = tqdm(range(len(df_test)))
     with open(os.path.join(DATA_DIR, SAVE_TEST_RESULT), "w") as f:
+        print("Writing to test_result.csv file")
         for text, label in df_test.values:
             tokenized_text = tokenizer(text, max_length=MAX_LENGTH, padding='max_length', truncation=True)
-            batch = {"input_ids":tokenized_text["input_ids"].to(DEVICE),
-                     "attention_mask":tokenized_text["attention_mask"].to(DEVICE),
-                     "token_type_ids":tokenized_text["token_type_ids"].to(DEVICE),
-                     "labels":tag2idx[label].to(DEVICE)}
+            batch = {"input_ids":torch.unsqueeze(LT(tokenized_text["input_ids"]), 0),
+                     "attention_mask":torch.unsqueeze(LT(tokenized_text["attention_mask"]), 0),
+                     "token_type_ids":torch.unsqueeze(LT(tokenized_text["token_type_ids"]), 0),
+                     "labels":LT([tag2idx[label]])}
             outputs = model(**batch)  
             logits = outputs.logits
             predictions = torch.argmax(logits, dim=-1)        
+            preds.append(predictions.item())
+            labels.append(label)
             f.write("{}@@@@@@{}@@@@@@{}\n".format(text, label, idx2tag[predictions.item()]))
+            progress_bar.update(1)
 def test_single():
+    LT = torch.LongTensor
     model_file = os.path.join(MODEL_SAVE, MODEL_SAVE_NAME)
     model = torch.load(model_file).to('cpu')
     tokenizer = AutoTokenizer.from_pretrained(TOKENIZER_FILE)
@@ -186,10 +194,10 @@ def test_single():
         print("Enter your sentence..")
         text = input()
         tokenized_text = tokenizer.encode(text, max_length=MAX_LENGTH, padding='max_length', truncation=True)
-        batch = {"input_ids":tokenized_text["input_ids"].to(DEVICE),
-                 "attention_mask":tokenized_text["attention_mask"].to(DEVICE),
-                 "token_type_ids":tokenized_text["token_type_ids"].to(DEVICE),
-                 "labels":tag2idx[label].to(DEVICE)}
+        batch = {"input_ids":torch.unsqueeze(LT(tokenized_text["input_ids"]), 0),
+                 "attention_mask":torch.unsqueeze(LT(tokenized_text["attention_mask"]), 0),
+                 "token_type_ids":torch.unsqueeze(LT(tokenized_text["token_type_ids"]), 0),
+                 "labels":LT([0])} # labels随机给0
         outputs = model(**batch)  
         logits = outputs.logits
         predictions = torch.argmax(logits, dim=-1)    
